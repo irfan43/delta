@@ -15,16 +15,16 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static com.irfanAK.delta.DeltaUtil.HashesSort;
 
 public class DeltaHash {
 
     // String is Chunk Size Chunk Count : Canonical Path "##:##:<Canonical Path>"
-    private HashMap<String,byte[]> FilesHashed;
+    private final HashMap<String,byte[]> FilesHashed;
     private final String Algorithm;
 
     public DeltaHash(String algorithm){
@@ -72,17 +72,33 @@ public class DeltaHash {
             return FilesHashed.get(key);
 
         // If cache misses we will try to hash the file and store in hashmap
-        byte[] hash = null;
+        byte[] hash;
         if(isFile){
             hash = FileChunkHash(path, chunkSize, chunkCount, Algorithm);
             FilesHashed.put(key,hash);
         }else{
             List<Path> filepath = Files.walk(path,1).filter(f -> Files.isRegularFile(f) || Files.isDirectory(f)).collect(Collectors.toList());
+            ArrayList<byte[]> hashes = new ArrayList<>();
             for (Path p : filepath) {
-                System.out.println(p.toFile().getCanonicalPath());
+                if(p.compareTo(path) == 0)
+                    continue;
+                if(!Files.isRegularFile(p) && !Files.isDirectory(p))
+                    continue;
+                byte[] fileHash = DeltaFileHash(p, chunkSize, chunkCount);
+                hashes.add(fileHash);
             }
+            hash = FolderArrayHash(hashes, Algorithm);
         }
         return hash;
+    }
+
+
+    private static byte[] FolderArrayHash(ArrayList<byte[]> hashes, String algorithm) throws NoSuchAlgorithmException {
+        hashes = HashesSort(hashes);
+        MessageDigest md = MessageDigest.getInstance(algorithm);
+        for (byte[] hash : hashes)
+            md.update(hash);
+        return md.digest();
     }
 
     /**
@@ -103,11 +119,11 @@ public class DeltaHash {
             throw new FileNotFoundException();
 
         boolean fullHash = chunkCount == -1;
-        byte[] hash = null;
+        byte[] hash;
 
         try(SeekableByteChannel sbc = FileChannel.open(path, StandardOpenOption.READ)){
             MessageDigest md = MessageDigest.getInstance(algorithm);
-            long size = 0,deltaPosition = 0;
+            long size,deltaPosition = 0;
             int bbSize = 1024 * chunkSize;
 
             if(!fullHash) {
