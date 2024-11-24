@@ -1,6 +1,7 @@
 package com.irfanAK.delta;
 
 import java.util.ArrayList;
+import java.util.Map;
 
 public class DeltaUtil {
 
@@ -44,5 +45,27 @@ public class DeltaUtil {
         }
 
         return 0;
+    }
+
+    public static String ByteToHexString(byte[] byteArray)
+    {
+        StringBuilder hex = new StringBuilder();
+        for (byte i : byteArray)
+            hex.append(String.format("%02X", i));
+        return hex.toString();
+    }
+
+    public static String GetHumanReadableSize(long size) {
+        String[] sizeUnits = new String[]{"bytes", "kb", "mb", "gb", "tb", "pb"};
+        int unitIndex;
+        int decimal = 0;
+        for (unitIndex = 0; unitIndex < (sizeUnits.length - 1); unitIndex++) {
+            if(size < 1024)
+                break;
+            decimal = (int) (size%1024);
+            size = size/1024;
+
+        }
+        return size + "." + decimal + sizeUnits[unitIndex];
     }
 }

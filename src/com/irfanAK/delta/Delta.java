@@ -11,26 +11,22 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 public class Delta {
-    /**
-    *
-    * */
+
+
     public static void main(String[] args) {
         System.out.println("Delta V1.00");
         DeltaHash dh = new DeltaHash("SHA-256");
         try {
-            byte[] hex = dh.DeltaFileHash(Path.of("CDs"), 10, -1);
-            //byte[] hex2 = dh.DeltaFileHash(Path.of("test2.mkv"), 10, 2);
-            //System.out.println(ByteToHexString(hex));
-            System.out.println(ByteToHexString(hex));
+            dh.DeltaFileHash(Path.of("C:\\Folder1"), 5, 2);
+            dh.DeltaFileHash(Path.of("C:\\Folder2"), 5, 2);
+
+            dh.DumpToFileSorted(Path.of("DE.dat"), Path.of("DESH.dat"), 1024L*1024L);
         } catch (IOException e) {
             System.out.println("Ran into IO Exception");
-
             e.printStackTrace();
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
-        //System.out.println(Files.isDirectory(Path.of("testing_data")));
-        //System.out.println( convertByteToHexadecimal(hash(Path.of("test.mkv"))) );
     }
 
     public static byte[] hash(Path fileToHash){
