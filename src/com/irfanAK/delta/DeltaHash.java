@@ -215,6 +215,7 @@ public class DeltaHash {
         ArrayList<String> duplicates = new ArrayList<>();
         for (int i = 1; i < hashes.size(); i++) {
             if(GetHash(hashes.get(i)).equals(GetHash(hashes.get(i - 1)))){
+                String hash = GetHash(hashes.get(i));
                 long file_size = Files.size(Path.of(GetPaths(hashes.get(i - 1))));
                 boolean isdir = Files.isDirectory(Path.of(GetPaths(hashes.get(i - 1))));
                 if(file_size < min_size &&  !isdir )
@@ -222,18 +223,14 @@ public class DeltaHash {
                 String file_size_string = "DIR";
                 if(!isdir)
                     file_size_string = padLeftZeros(file_size + "", 15) + "#" + DeltaUtil.GetHumanReadableSize(file_size);
-
-                while(GetHash(hashes.get(i)).equals(GetHash(hashes.get(i - 1)))){
-//                    bwd.write(hashes.get(i - 1));
-//                    bwd.newLine();
+                file_size_string += " " + hash.substring(0,6);
+                while((i < hashes.size()) && GetHash(hashes.get(i)).equals(GetHash(hashes.get(i - 1)))){
                     duplicates.add(file_size_string + " " + GetPaths(hashes.get(i - 1)));
                     i++;
                     size_saved += file_size;
                     number_of_duplicates++;
                 }
-//                bwd.write(hashes.get(i - 1));
-//                bwd.newLine();
-//                bwd.newLine();
+
                 duplicates.add(file_size_string + " " + GetPaths(hashes.get(i - 1)));
                 number_of_duplicates++;
             }

@@ -3,6 +3,8 @@ package com.irfanAK.delta;
 import java.util.ArrayList;
 import java.util.Map;
 
+import static java.lang.Integer.min;
+
 public class DeltaUtil {
 
     public static ArrayList<byte[]> HashesSort(ArrayList<byte[]> input){
@@ -66,6 +68,8 @@ public class DeltaUtil {
             size = size/1024;
 
         }
-        return size + "." + decimal + sizeUnits[unitIndex];
+        decimal = min((1000*decimal)/1024,999);
+
+        return size + "." + String.format("%03d",decimal) + sizeUnits[unitIndex];
     }
 }

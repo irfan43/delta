@@ -14,7 +14,7 @@ public class Delta {
 
 
     public static void main(String[] args) {
-        System.out.println("Delta V1.00");
+        System.out.println("Delta V1.01");
         DeltaHash dh = new DeltaHash("SHA-256");
         if(args.length < 2){
             System.out.println("need more then one argument \n" +
