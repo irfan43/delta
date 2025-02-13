@@ -38,7 +38,7 @@ public class DeltaHash {
      * Folders will be hashed and return similar
      * @param path location of the file or folder
      * @param chunkSize Size of the chunks in kilobytes if chunkCount is -1 will consider full hash and ignore chunking, chunkSize will be the buffer size
-     * @param chunkCount plus two (the starting and ending chunks)
+     * @param chunkCount plus two (the starting and ending chunks) if chunkCount is -1 will consider full hash and ignore chunking
      * @return byte hash of the file or folder
      */
     public byte[] DeltaFileHash(Path path, int chunkSize, int chunkCount) throws IOException, NoSuchAlgorithmException {
@@ -73,7 +73,7 @@ public class DeltaHash {
         // If cache misses we will try to hash the file and store in hashmap
         byte[] hash;
         if(isFile){
-            System.out.println("Hashing " + key);
+            //System.out.println("Hashing " + key);
             hash = FileChunkHash(path, chunkSize, chunkCount, Algorithm);
             FilesHashed.put(key,hash);
         }else{
@@ -245,7 +245,7 @@ public class DeltaHash {
         }
 
 
-        System.out.println(" Duplicate files found " + number_of_duplicates + " using " + DeltaUtil.GetHumanReadableSize(size_saved) + " extra data");
+        //System.out.println(" Duplicate files found " + number_of_duplicates + " using " + DeltaUtil.GetHumanReadableSize(size_saved) + " extra data");
         bw.flush();
         bw.close();
         bwd.flush();

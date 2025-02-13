@@ -16,11 +16,38 @@ public class Delta {
     public static void main(String[] args) {
         System.out.println("Delta V1.00");
         DeltaHash dh = new DeltaHash("SHA-256");
-        try {
-            dh.DeltaFileHash(Path.of("C:\\Folder1"), 5, 2);
-            dh.DeltaFileHash(Path.of("C:\\Folder2"), 5, 2);
+        if(args.length < 2){
+            System.out.println("need more then one argument \n" +
+                    "H - basic hash \n" +
+                    "D - dump\n");
 
-            dh.DumpToFileSorted(Path.of("DE.dat"), Path.of("DESH.dat"), 1024L*1024L);
+            System.out.println("got only " + args.length + " arguments \n");
+            for (String s :
+                    args) {
+                System.out.println(" : " + s);
+            }
+            return;
+        }
+
+        try {
+
+            if(args[0].toUpperCase().startsWith("H")){
+                byte[] hash = dh.DeltaFileHash(Path.of(args[1]), 5, -1);
+                System.out.println("HASH:- " +  DeltaUtil.ByteToHexString(hash) );
+            }else if(args[0].toUpperCase().startsWith("D")){
+                if(args.length < 3){
+                    System.out.println("needs 3 arguments \n" +
+                            "dump <dump file> hashfile1 hashfile2...\n");
+                    return;
+                }
+                for (int i = 2; i < args.length; i++) {
+                    dh.DeltaFileHash(Path.of(args[i]), 5, -1);
+                }
+                dh.DumpToFileSorted(Path.of(args[1] + ".dat"), Path.of(args[1] + "SH.dat"), 0);
+            }else{
+                System.out.println("Unknown argument " + args[0]);
+            }
+
         } catch (IOException e) {
             System.out.println("Ran into IO Exception");
             e.printStackTrace();
