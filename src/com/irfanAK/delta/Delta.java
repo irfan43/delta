@@ -9,12 +9,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 
 public class Delta {
 
 
     public static void main(String[] args) {
-        System.out.println("Delta V1.01");
+        System.out.println("Delta V1.04");
         DeltaHash dh = new DeltaHash("SHA-256");
         if(args.length < 2){
             System.out.println("need more then one argument \n" +
@@ -32,7 +33,7 @@ public class Delta {
         try {
 
             if(args[0].toUpperCase().startsWith("H")){
-                byte[] hash = dh.DeltaFileHash(Path.of(args[1]), 5, -1);
+                byte[] hash = dh.DeltaFileHash(Path.of(args[1]), 50, 10);
                 System.out.println("HASH:- " +  DeltaUtil.ByteToHexString(hash) );
             }else if(args[0].toUpperCase().startsWith("D")){
                 if(args.length < 3){
@@ -41,9 +42,11 @@ public class Delta {
                     return;
                 }
                 for (int i = 2; i < args.length; i++) {
-                    dh.DeltaFileHash(Path.of(args[i]), 5, -1);
+                    System.out.println("HASHING " + args[i]);
+                    dh.DeltaFileHash(Path.of(args[i]), 50, 10);
                 }
-                dh.DumpToFileSorted(Path.of(args[1] + ".dat"), Path.of(args[1] + "SH.dat"), 0);
+                System.out.println(" saving ");
+                dh.DumpToFileSorted(Path.of(args[1] + ".dat"), Path.of(args[1] + "SH.dat"), 1024*1024*10);
             }else{
                 System.out.println("Unknown argument " + args[0]);
             }

@@ -1,5 +1,6 @@
 package com.irfanAK.delta;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -54,7 +55,7 @@ public class DeltaHash {
 
         String canonicalPath = path.toFile().getCanonicalPath();
         String key = chunkSize + ":" + chunkCount + ":" + canonicalPath;
-
+        System.out.println("Working on " + path);
         boolean isFile =      Files.isRegularFile(path);  // Check if it's a regular file
         boolean isDirectory = Files.isDirectory(path);    // Check if it's a directory
         if(!isDirectory && !isFile)
@@ -78,14 +79,23 @@ public class DeltaHash {
             FilesHashed.put(key,hash);
         }else{
             hash = FolderHash(path, chunkSize, chunkCount);
-            FilesHashed.put(key,hash);
+            if(hash != null)
+                FilesHashed.put(key,hash);
+            else{
+                hash = new byte[32];
+                Arrays.fill(hash, (byte)0);
+            }
+
         }
         return hash;
     }
 
     private byte[] FolderHash(Path path, int chunkSize, int chunkCount) throws NoSuchAlgorithmException, IOException {
         List<Path> filepath = Files.walk(path,1).filter(f -> Files.isRegularFile(f) || Files.isDirectory(f)).collect(Collectors.toList());
-
+        filepath.remove(path);
+        if(filepath.size() == 0){
+            return null;
+        }
         ArrayList<DeltaHashingThread> threadList = new ArrayList<>();
         ArrayList<byte[]> hashes = new ArrayList<>();
         for (Path p : filepath) {
@@ -195,8 +205,21 @@ public class DeltaHash {
         bw.close();
     }
 
-    public void DumpToFileSorted(Path path, Path duplicated, long min_size) throws IOException {
-        BufferedWriter bw = Files.newBufferedWriter(path);
+    public void LoadFromFile(Path path) throws IOException {
+        BufferedReader br = Files.newBufferedReader(path);
+        String line;
+        do{
+            line = br.readLine();
+            if(line != null){
+                int n = line.indexOf(":");
+
+            }
+        }while(line != null);
+        br.close();
+    }
+
+    public void DumpToFileSorted(Path dataFilePath, Path duplicated, long min_size) throws IOException {
+        BufferedWriter bw = Files.newBufferedWriter(dataFilePath);
         BufferedWriter bwd = Files.newBufferedWriter(duplicated);
         ArrayList<String> hashes = new ArrayList<>();
         for(String key : FilesHashed.keySet()){
@@ -213,40 +236,138 @@ public class DeltaHash {
         long size_saved = 0;
 
         ArrayList<String> duplicates = new ArrayList<>();
+
+        ArrayList<String> duplicateParentFolders = new ArrayList<>();
+        ArrayList<String> duplicateFolders = new ArrayList<>();
+        ArrayList<DeltaDuplicateSet> duplicateSets = new ArrayList<>();
         for (int i = 1; i < hashes.size(); i++) {
             if(GetHash(hashes.get(i)).equals(GetHash(hashes.get(i - 1)))){
                 String hash = GetHash(hashes.get(i));
+
                 long file_size = Files.size(Path.of(GetPaths(hashes.get(i - 1))));
-                boolean isdir = Files.isDirectory(Path.of(GetPaths(hashes.get(i - 1))));
-                if(file_size < min_size &&  !isdir )
+                boolean isDir = Files.isDirectory(Path.of(GetPaths(hashes.get(i - 1))));
+                if(file_size < min_size &&  !isDir )
                     continue;
                 String file_size_string = "DIR";
-                if(!isdir)
+                if(!isDir)
                     file_size_string = padLeftZeros(file_size + "", 15) + "#" + DeltaUtil.GetHumanReadableSize(file_size);
                 file_size_string += " " + hash.substring(0,6);
+
+                DeltaDuplicateSet dds = new DeltaDuplicateSet(file_size_string + " " + hash);
                 while((i < hashes.size()) && GetHash(hashes.get(i)).equals(GetHash(hashes.get(i - 1)))){
                     duplicates.add(file_size_string + " " + GetPaths(hashes.get(i - 1)));
+                    dds.addHash(file_size_string + " " + GetPaths(hashes.get(i - 1)));
+                    if(isDir)
+                        duplicateFolders.add(GetPaths(hashes.get(i - 1)));
+                    duplicateParentFolders.add(GetParentPath(hashes.get(i - 1)));
+
                     i++;
                     size_saved += file_size;
                     number_of_duplicates++;
                 }
 
+                dds.addHash(file_size_string + " " + GetPaths(hashes.get(i - 1)));
                 duplicates.add(file_size_string + " " + GetPaths(hashes.get(i - 1)));
+                duplicateSets.add(dds);
                 number_of_duplicates++;
             }
         }
-        Collections.sort(duplicates);
-        for (String l : duplicates) {
-            bwd.write(RemoveFileSize(l));
+//        for(DeltaDuplicateSet dds : duplicateSets){
+//            ArrayList<String> paths = dds.getFile_Hashes();
+//            boolean isInDuplicateFolder = true;
+//            for(String p : paths){
+//                p = GetPaths(p);
+//                if(!duplicateFolders.contains(p)){
+//                    isInDuplicateFolder = false;
+//                }
+//            }
+//            if(isInDuplicateFolder)
+//                duplicateSets.remove(dds);
+//        }
+
+
+//        Collections.sort(duplicates);
+//        for (String l : duplicates) {
+//            bwd.write(RemoveFileSize(l));
+//            bwd.newLine();
+//        }
+        Collections.sort(duplicateSets);
+        BufferedWriter batADbw = Files.newBufferedWriter(Path.of("AutoDelete.bat"));
+        for(DeltaDuplicateSet dds : duplicateSets){
+            boolean isDir = false;
+            ArrayList<String> ddsHashes = dds.getFile_Hashes();
+            ArrayList<String> pathDelBat = new ArrayList<>();
+
+            if(ddsHashes.size() <= 1)
+                continue;
+
+            for(String h : ddsHashes){
+                h = RemoveFileSize(h);
+                isDir = h.substring(0,3).equalsIgnoreCase("DIR");
+                bwd.write(h);
+                bwd.newLine();
+                h = h.substring(h.indexOf(" ")+ 1);
+                h = h.substring(h.indexOf(" ") + 1);
+
+                pathDelBat.add(h);
+            }
             bwd.newLine();
+
+            String cmd = isDir ? "RMDIR" : "DEL";
+            String cmdEnd = isDir ? " /s /q" : "";
+            String org = pathDelBat.remove(0);
+            for(String s : pathDelBat){
+                bwd.write("ECHO orginal is located at " + org + " > \"" + s + "\".txt\n" );
+                bwd.write(cmd + " \"" + s + "\"" + cmdEnd + "\n");
+
+
+                batADbw.write("ECHO orginal is located at " + org + " > \"" + s + "\".txt\n" );
+                batADbw.write(cmd + " \"" + s + "\"" + cmdEnd + "\n");
+            }
+            bwd.newLine();
+            bwd.newLine();
+
         }
 
 
-        //System.out.println(" Duplicate files found " + number_of_duplicates + " using " + DeltaUtil.GetHumanReadableSize(size_saved) + " extra data");
+        batADbw.flush();
+        batADbw.close();
+
+
+        System.out.println(" Duplicate files found " + number_of_duplicates + " using " + DeltaUtil.GetHumanReadableSize(size_saved) + " extra data");
         bw.flush();
         bw.close();
         bwd.flush();
         bwd.close();
+    }
+
+    public String FolderRelation(String PathA,String PathB){
+
+        /*
+         * - UNRELATED
+         * --  if both directories only have one file in common
+         *
+         * - MULTIPLE MATCHING
+         * -- having multiple files matching over the directories but each directory has other non related files
+         *
+         * - SubSet A to B
+         * -- B has all the files of A
+         *
+         * - SubSet B to A
+         * -- A has all the files of B
+         *
+         * - folders matches
+         */
+        //boolean isFileA =      Files.isRegularFile(Path.of(PathA));
+        boolean isDirA =       Files.isDirectory(Path.of(PathA));
+        //boolean isFileB =      Files.isRegularFile(Path.of(PathB));
+        boolean isDirB =       Files.isDirectory(Path.of(PathB));
+
+        if(! (isDirA && isDirB) ){
+            return "FF"; //files
+        }
+
+        return "UR";  // unrelated
     }
 
     private String RemoveFileSize(String s){
@@ -260,8 +381,8 @@ public class DeltaHash {
         return sb.substring(s.length()) + s;
     }
 
-    private String GetPaths(String hashkey) {
-        String path = hashkey.substring(65);
+    private String GetPaths(String hashKey) {
+        String path = hashKey.substring(65);
         for (int i = 0; i < 2; i++) {
             int n = path.indexOf(':');
             path = path.substring(n + 1);
@@ -269,7 +390,13 @@ public class DeltaHash {
         return path;
     }
 
-    public static String GetHash(String hashkey){
-        return hashkey.substring(0,64);
+    private String GetParentPath(String hashKey) {
+        String path = GetPaths(hashKey);
+        int n = path.lastIndexOf("\\");
+        return path.substring(0,n);
+    }
+
+    public static String GetHash(String hashKey){
+        return hashKey.substring(0,64);
     }
 }
