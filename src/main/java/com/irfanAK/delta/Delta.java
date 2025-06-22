@@ -1,20 +1,24 @@
 package com.irfanAK.delta;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.IOException;
+import com.sun.tools.javac.Main;
+
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Properties;
+
 
 public class Delta {
 
+    private static final String APP_NAME = System.getProperty("app.name", "Unknown App");
+    private static final String APP_VERSION = System.getProperty("app.version", "0.0.0");
+
+
 
     public static void main(String[] args) {
-        System.out.println("Delta V1.00");
+        System.out.println(APP_NAME + " V" + APP_VERSION);
         DeltaHash dh = new DeltaHash("SHA-256");
         if(args.length < 2){
             System.out.println("need more then one argument \n" +
@@ -32,7 +36,7 @@ public class Delta {
         try {
 
             if(args[0].toUpperCase().startsWith("H")){
-                byte[] hash = dh.DeltaFileHash(Path.of(args[1]), 5, -1);
+                byte[] hash = dh.DeltaFileHash(Path.of(args[1]), 50, 10);
                 System.out.println("HASH:- " +  DeltaUtil.ByteToHexString(hash) );
             }else if(args[0].toUpperCase().startsWith("D")){
                 if(args.length < 3){
@@ -41,9 +45,11 @@ public class Delta {
                     return;
                 }
                 for (int i = 2; i < args.length; i++) {
-                    dh.DeltaFileHash(Path.of(args[i]), 5, -1);
+                    System.out.println("HASHING " + args[i]);
+                    dh.DeltaFileHash(Path.of(args[i]), 50, 10);
                 }
-                dh.DumpToFileSorted(Path.of(args[1] + ".dat"), Path.of(args[1] + "SH.dat"), 0);
+                System.out.println(" saving ");
+                dh.DumpToFileSorted(Path.of(args[1] + ".dat"), Path.of(args[1] + "SH.dat"), 1024*1024*10);
             }else{
                 System.out.println("Unknown argument " + args[0]);
             }
