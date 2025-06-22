@@ -1,21 +1,35 @@
 package com.irfanAK.delta;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.IOException;
+import com.sun.tools.javac.Main;
+
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
+import java.util.Properties;
+
 
 public class Delta {
 
+    private static final String APP_NAME = System.getProperty("app.name", "Unknown App");
+    private static final String APP_VERSION = System.getProperty("app.version", "0.0.0");
+    public static final String NAME = "${project.name}";
+    public static final String VERSION = "${project.version}";
 
+
+    // Method to get the version for use elsewhere
+    // Method to get the version for use elsewhere
+    public static String getAppVersion() {
+        return APP_VERSION;
+    }
+
+    // Method to get the name for use elsewhere
+    public static String getAppName() {
+        return APP_NAME;
+    }
     public static void main(String[] args) {
-        System.out.println("Delta V1.04");
+        System.out.println(APP_NAME + " V" + APP_VERSION);
         DeltaHash dh = new DeltaHash("SHA-256");
         if(args.length < 2){
             System.out.println("need more then one argument \n" +

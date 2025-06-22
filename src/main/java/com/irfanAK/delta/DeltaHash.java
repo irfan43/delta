@@ -13,8 +13,6 @@ import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 
@@ -23,13 +21,16 @@ public class DeltaHash {
     // String is Chunk Size Chunk Count : Canonical Path "##:##:<Canonical Path>"
     private final HashMap<String,byte[]> FilesHashed;
     private final String Algorithm;
-    private final ExecutorService executionPool;
-    public final boolean MultithreadingEnable = false;
+    // Threshold before which partial hashing is ignored and will do a full hash to save time
+    // for example if a partial hash of a file is hashing 5mb and the file is 7mb,
+    //          it may be better to just do a full hash
+    // this value is kept as percentage
+    private final int FullHashingThreshold;
 
     public DeltaHash(String algorithm){
         FilesHashed = new HashMap<>();
         Algorithm = algorithm;
-        executionPool = Executors.newCachedThreadPool();
+        FullHashingThreshold = 50;
     }
 
     /**
@@ -62,7 +63,7 @@ public class DeltaHash {
             throw new IllegalArgumentException("File is not regular file, can not be hashed.");
 
         if(isFile)
-            if ( (Files.size(path) / 2) < (long) chunkCount * (long) chunkSize * 1024L)
+            if ( ( (Files.size(path)/100)  * FullHashingThreshold) < (long) chunkCount * (long) chunkSize * 1024L)
                 chunkCount = -1;
 
         if(chunkCount == -1)
@@ -104,35 +105,12 @@ public class DeltaHash {
             if(!Files.isRegularFile(p) && !Files.isDirectory(p) || p.toFile().getCanonicalPath().contains("$RECYCLE.BIN") || p.toFile().getCanonicalPath().contains("System Volume Information"))
                 continue;
 
-            if(MultithreadingEnable){
-                DeltaHashingThread t = new DeltaHashingThread(p,this,chunkSize,chunkCount);
-                threadList.add(t);
-                executionPool.execute(t);
-            }else {
-                byte[] fileHash = DeltaFileHash(p, chunkSize, chunkCount);
-                hashes.add(fileHash);
-            }
+
+            byte[] fileHash = DeltaFileHash(p, chunkSize, chunkCount);
+            hashes.add(fileHash);
+
         }
-        if(MultithreadingEnable){
-            try {
-                boolean finished = false;
-                while (!finished) {
-                    finished = true;
-                    for (DeltaHashingThread t : threadList) {
-                        if (t.isCompleted()) {
-                            finished = false;
-                            break;
-                        }
-                    }
-                    Thread.sleep(1);
-                }
-            } catch (InterruptedException e) {
-                throw new IOException("ILLEGAL INTERRUPTION");
-            }
-            for (DeltaHashingThread t : threadList) {
-                hashes.add(t.getHashOutput());
-            }
-        }
+
         return FolderArrayHash(hashes, Algorithm);
     }
 

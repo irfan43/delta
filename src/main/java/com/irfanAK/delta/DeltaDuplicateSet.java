@@ -1,7 +1,6 @@
 package com.irfanAK.delta;
 
 import java.util.ArrayList;
-import java.util.Objects;
 
 public class DeltaDuplicateSet  implements Comparable<DeltaDuplicateSet>{
 
