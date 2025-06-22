@@ -14,20 +14,9 @@ public class Delta {
 
     private static final String APP_NAME = System.getProperty("app.name", "Unknown App");
     private static final String APP_VERSION = System.getProperty("app.version", "0.0.0");
-    public static final String NAME = "${project.name}";
-    public static final String VERSION = "${project.version}";
 
 
-    // Method to get the version for use elsewhere
-    // Method to get the version for use elsewhere
-    public static String getAppVersion() {
-        return APP_VERSION;
-    }
 
-    // Method to get the name for use elsewhere
-    public static String getAppName() {
-        return APP_NAME;
-    }
     public static void main(String[] args) {
         System.out.println(APP_NAME + " V" + APP_VERSION);
         DeltaHash dh = new DeltaHash("SHA-256");

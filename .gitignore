@@ -2,3 +2,5 @@
 /out/
 /.idea/
 delta.iml
+target/
+*.class
